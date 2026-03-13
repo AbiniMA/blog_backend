@@ -5,4 +5,5 @@ urlpatterns = [
     path("google-login/", google_login),
     path("user/", get_user),
     path("users/", all_users),
+    
 ]
