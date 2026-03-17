@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import request, status
 from .models import Blog, Category, Comment
 from .serializer import BlogSerializer, CategorySerializer, CommentSerializer
 
@@ -20,29 +20,54 @@ def category_list_create(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+from django.db.models import Q
+
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny]) 
 def blog_list_create(request):
+
+    # -------- GET (FILTER + SEARCH) --------
     if request.method == 'GET':
+
+        category_id = request.GET.get('category')
+        search = request.GET.get('search')
+
         blogs = Blog.objects.all().order_by('-created_at')
-        serializer = BlogSerializer(blogs, many=True)
+
+        # ✅ filter by category
+        if category_id:
+            blogs = blogs.filter(category_id=category_id)
+
+        # ✅ search in title + content + tags
+        if search:
+            blogs = blogs.filter(
+                Q(title__icontains=search) |
+                Q(content__icontains=search) |
+                Q(tags__icontains=search)
+            )
+
+        serializer = BlogSerializer(
+            blogs,
+            many=True,
+            context={'request': request}
+        )
         return Response(serializer.data)
 
+    # -------- POST --------
     if not request.user.is_authenticated:
-        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"error": "Authentication required"}, status=401)
 
-    serializer = BlogSerializer(data=request.data)
+    serializer = BlogSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         serializer.save(user=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=201)
 
-
+    return Response(serializer.errors, status=400)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_blogs(request):
     blogs = Blog.objects.filter(user=request.user).order_by('-created_at')
-    serializer = BlogSerializer(blogs, many=True)
+    serializer = BlogSerializer(blogs, many=True, context={'request': request})
     return Response(serializer.data)
 
 
@@ -54,7 +79,7 @@ def blog_detail(request, pk):
         return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
-        serializer = BlogSerializer(blog)
+        serializer = BlogSerializer(blog, context={'request': request})
         return Response(serializer.data)
 
     if not request.user.is_authenticated:
@@ -79,6 +104,11 @@ def blog_detail(request, pk):
 def blog_comments(request, blog_id):
     try:
         blog = Blog.objects.get(pk=blog_id)
+        print("USER:", request.user)
+        print("AUTH:", request.user.is_authenticated)
+        print("COOKIES:", request.COOKIES)
+        print("COOKIE HEADER:", request.headers.get("Cookie"))
+        print("X-CSRFToken:", request.headers.get("X-CSRFToken"))
     except Blog.DoesNotExist:
         return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
 

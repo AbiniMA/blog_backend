@@ -6,7 +6,7 @@ from .views import (
     blog_detail,
     blog_comments,
     comment_detail,
-)
+)       
 
 urlpatterns = [
     path('categories/', category_list_create, name='categories'),

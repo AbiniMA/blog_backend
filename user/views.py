@@ -5,7 +5,7 @@ from django.contrib.auth import login
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import permission_classes
 
 from .serializer import UserSerializer
@@ -59,13 +59,12 @@ def google_login(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_user(request):
-    user = request.user
-
     return Response({
-        "id": user.id,
-        "email": user.email,
-        "name": user.first_name
+        "id": request.user.id,
+        "email": request.user.email,
+        "name": request.user.first_name
     })
 
 
