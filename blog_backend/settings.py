@@ -48,6 +48,7 @@ INSTALLED_APPS = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "https://blog-frontend-bice-five.vercel.app"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -55,6 +56,8 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "https://blog-frontend-bice-five.vercel.app"
+
 ]
 
 SESSION_COOKIE_SAMESITE = "Lax"
