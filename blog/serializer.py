@@ -26,13 +26,13 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class BlogSerializer(serializers.ModelSerializer):
-
     user_name = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
     comments = CommentSerializer(many=True, read_only=True)
     comments_count = serializers.IntegerField(source='comments.count', read_only=True)
 
-    image = serializers.SerializerMethodField()   # ✅ important
+    # ✅ writable field
+    image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Blog
@@ -54,14 +54,20 @@ class BlogSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['user']
 
-    # ✅ FULL NAME (or fallback)
     def get_user_name(self, obj):
         name = f"{obj.user.first_name} {obj.user.last_name}".strip()
         return name if name else obj.user.email
 
-    # ✅ FULL IMAGE URL
-    def get_image(self, obj):
-        request = self.context.get('request')
-        if obj.image and request:
-            return request.build_absolute_uri(obj.image.url)
-        return None
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get("request")
+
+        if instance.image:
+            image_url = instance.image.url
+            representation["image"] = (
+                request.build_absolute_uri(image_url) if request else image_url
+            )
+        else:
+            representation["image"] = None
+
+        return representation

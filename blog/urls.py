@@ -6,6 +6,8 @@ from .views import (
     blog_detail,
     blog_comments,
     comment_detail,
+
+    user_dashboard_stats,
 )       
 
 urlpatterns = [
@@ -17,4 +19,7 @@ urlpatterns = [
 
     path('blogs/<int:blog_id>/comments/', blog_comments, name='blog-comments'),
     path('comments/<int:pk>/', comment_detail, name='comment-detail'),
+    # dashboard stats
+    path('dashboard/stats/', user_dashboard_stats, name='user-dashboard-stats'),
+
 ]

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     'blog',
+    'generate_blog'
 
 ]
 
@@ -157,3 +158,4 @@ load_dotenv()
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
