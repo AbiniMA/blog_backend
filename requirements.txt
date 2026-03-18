@@ -7,3 +7,4 @@ requests
 openai
 psycopg2-binary
 gunicorn
+djangorestframework-simplejwt

@@ -1,46 +1,44 @@
+from django.db.models import Q
+
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import request, status
+from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
 from .models import Blog, Category, Comment
 from .serializer import BlogSerializer, CategorySerializer, CommentSerializer
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
 def category_list_create(request):
     if request.method == 'GET':
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     serializer = CategorySerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-from django.db.models import Q
-
 @api_view(['GET', 'POST'])
-@permission_classes([AllowAny]) 
+@permission_classes([AllowAny])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def blog_list_create(request):
-
-    # -------- GET (FILTER + SEARCH) --------
     if request.method == 'GET':
-
         category_id = request.GET.get('category')
         search = request.GET.get('search')
 
         blogs = Blog.objects.all().order_by('-created_at')
 
-        # ✅ filter by category
         if category_id:
             blogs = blogs.filter(category_id=category_id)
 
-        # ✅ search in title + content + tags
         if search:
             blogs = blogs.filter(
                 Q(title__icontains=search) |
@@ -53,37 +51,52 @@ def blog_list_create(request):
             many=True,
             context={'request': request}
         )
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # -------- POST --------
     if not request.user.is_authenticated:
-        return Response({"error": "Authentication required"}, status=401)
+        return Response(
+            {"error": "Authentication required"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
-    serializer = BlogSerializer(data=request.data, context={'request': request})
+    serializer = BlogSerializer(
+        data=request.data,
+        context={'request': request}
+    )
     if serializer.is_valid():
         serializer.save(user=request.user)
-        return Response(serializer.data, status=201)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    return Response(serializer.errors, status=400)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def my_blogs(request):
     blogs = Blog.objects.filter(user=request.user).order_by('-created_at')
-    serializer = BlogSerializer(blogs, many=True, context={'request': request})
-    return Response(serializer.data)
+    serializer = BlogSerializer(
+        blogs,
+        many=True,
+        context={'request': request}
+    )
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([AllowAny])
 @parser_classes([MultiPartParser, FormParser, JSONParser])
 def blog_detail(request, pk):
     try:
         blog = Blog.objects.get(pk=pk)
     except Blog.DoesNotExist:
-        return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Blog not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     if request.method == 'GET':
         serializer = BlogSerializer(blog, context={'request': request})
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     if not request.user.is_authenticated:
         return Response(
@@ -106,36 +119,44 @@ def blog_detail(request, pk):
         )
         if serializer.is_valid():
             serializer.save(user=request.user)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'DELETE':
         blog.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {"message": "Blog deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
 @api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
 def blog_comments(request, blog_id):
     try:
         blog = Blog.objects.get(pk=blog_id)
-        print("USER:", request.user)
-        print("AUTH:", request.user.is_authenticated)
-        print("COOKIES:", request.COOKIES)
-        print("COOKIE HEADER:", request.headers.get("Cookie"))
-        print("X-CSRFToken:", request.headers.get("X-CSRFToken"))
     except Blog.DoesNotExist:
-        return Response({"error": "Blog not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Blog not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     if request.method == 'GET':
         comments = Comment.objects.filter(blog=blog).order_by('-created_at')
         serializer = CommentSerializer(comments, many=True)
-        return Response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     if not request.user.is_authenticated:
-        return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response(
+            {"error": "Authentication required"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     serializer = CommentSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save(user=request.user, blog=blog)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -145,23 +166,30 @@ def comment_detail(request, pk):
     try:
         comment = Comment.objects.get(pk=pk)
     except Comment.DoesNotExist:
-        return Response({"error": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Comment not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     if comment.user != request.user:
-        return Response({"error": "You can edit/delete only your own comment"}, status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"error": "You can edit/delete only your own comment"},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
     if request.method == 'PUT':
         serializer = CommentSerializer(comment, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save(user=request.user, blog=comment.blog)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'DELETE':
         comment.delete()
-        return Response({"message": "Comment deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-
-
+        return Response(
+            {"message": "Comment deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 
 @api_view(['GET'])
@@ -174,7 +202,7 @@ def user_dashboard_stats(request):
         getattr(user, "name", None)
         or getattr(user, "username", None)
         or f"{getattr(user, 'first_name', '')} {getattr(user, 'last_name', '')}".strip()
-        or user.email
+        or getattr(user, "email", "")
     )
 
     data = {
@@ -185,7 +213,11 @@ def user_dashboard_stats(request):
         },
         "total_blogs": blogs.count(),
         "total_comments": Comment.objects.filter(blog__user=user).count(),
-        "blogs": BlogSerializer(blogs, many=True).data,
+        "blogs": BlogSerializer(
+            blogs,
+            many=True,
+            context={'request': request}
+        ).data,
     }
 
     return Response(data, status=status.HTTP_200_OK)
