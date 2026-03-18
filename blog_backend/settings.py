@@ -26,10 +26,9 @@ SECRET_KEY = 'django-insecure-kl@z3n0^kr51zf*&ex95byvjm=ar8ckwy87ewb=v4=0=%@7ayl
 DEBUG = True
 
 ALLOWED_HOSTS = [
-     "http://localhost:3000",
-    "http://localhost:3001",
-       " https://blog-backend-9tdd.onrender.com"
-
+    "localhost",
+    "127.0.0.1",
+    "blog-backend-9tdd.onrender.com",
 ]
 
 
