@@ -5,13 +5,15 @@ Django settings for blog_backend project.
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
+from corsheaders.defaults import default_headers
+
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-kl@z3n0^kr51zf*&ex95byvjm=ar8ckwy87ewb=v4=0=%@7ayl'
-
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key")
 DEBUG = True
 
 ALLOWED_HOSTS = [
@@ -53,18 +55,21 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3001",
     "https://blog-frontend-bice-five.vercel.app",
 ]
+
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
 ]
 
-CORS_ALLOW_CREDENTIALS = False
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "authorization",
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3001",
     "https://blog-frontend-bice-five.vercel.app",
-    "https://*.vercel.app",
 ]
 
 REST_FRAMEWORK = {
@@ -75,8 +80,6 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.AllowAny",
     ]
 }
-
-from datetime import timedelta
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
@@ -116,18 +119,10 @@ DATABASES = {
 }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 LANGUAGE_CODE = 'en-us'
